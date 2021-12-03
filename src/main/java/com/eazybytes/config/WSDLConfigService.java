@@ -6,14 +6,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.ws.config.annotation.EnableWs;
+import org.springframework.ws.config.annotation.WsConfigurerAdapter;
+import org.springframework.ws.server.EndpointInterceptor;
+import org.springframework.ws.soap.security.xwss.XwsSecurityInterceptor;
+import org.springframework.ws.soap.security.xwss.callback.SimplePasswordValidationCallbackHandler;
 import org.springframework.ws.transport.http.MessageDispatcherServlet;
 import org.springframework.ws.wsdl.wsdl11.DefaultWsdl11Definition;
 import org.springframework.xml.xsd.SimpleXsdSchema;
 import org.springframework.xml.xsd.XsdSchema;
 
+import java.util.Collections;
+import java.util.List;
+
 @EnableWs
 @Configuration
-public class WSDLConfigService {
+public class WSDLConfigService extends WsConfigurerAdapter {
 
     //RequestHandler - Servlet -> ServletRegistration Bean - MessageServlet
     //url /soap/*
@@ -38,6 +45,27 @@ public class WSDLConfigService {
         wsdl.setTargetNamespace("http://eazybytes.com/hrms");
         wsdl.setSchema(schema);
         return wsdl;
+    }
 
+    // security implementation
+    @Bean
+    public XwsSecurityInterceptor requestInterceptor() {
+        XwsSecurityInterceptor interceptor = new XwsSecurityInterceptor();
+        interceptor.setCallbackHandler(callBackHandler());
+
+        interceptor.setPolicyConfiguration(new ClassPathResource("securityPolicy.xml"));
+        return interceptor;
+    }
+
+    @Bean
+    public SimplePasswordValidationCallbackHandler callBackHandler() {
+        SimplePasswordValidationCallbackHandler handler = new SimplePasswordValidationCallbackHandler();
+        handler.setUsersMap(Collections.singletonMap("admin", "password"));
+        return handler;
+    }
+
+    @Override
+    public void addInterceptors(List<EndpointInterceptor> interceptors) {
+        interceptors.add(requestInterceptor());
     }
 }
